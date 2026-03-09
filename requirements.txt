@@ -1,0 +1,10 @@
+# Light dependencies — changes more often than paddle, fast to install.
+pillow==11.1.0
+httpx==0.28.1
+numpy==2.2.6
+opencv-python-headless==4.11.0.86
+pytesseract==0.3.10
+pydantic==2.7.1
+fastapi==0.115.0
+uvicorn==0.30.6
+python-multipart==0.0.9

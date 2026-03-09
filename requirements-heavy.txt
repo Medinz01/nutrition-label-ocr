@@ -1,0 +1,5 @@
+# Heavy dependencies — cached as a separate Docker layer.
+# Only reinstalled when this file changes.
+# PaddlePaddle is ~2GB — keep it isolated here.
+paddlepaddle==3.2.0
+paddleocr==3.4.0

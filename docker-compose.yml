@@ -1,0 +1,16 @@
+services:
+  ocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+      - paddle_models:/root/.paddlex
+    environment:
+      - PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+volumes:
+  paddle_models:

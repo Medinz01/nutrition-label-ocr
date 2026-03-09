@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+*.egg-info/
+venv/
+.venv/
+env/
+
+# Environment
+.env
+.env.local
+
+# PaddleOCR model cache (large, downloaded at runtime via Docker volume)
+.paddleocr/
+paddle_model/
+inference/
+*.pdmodel
+*.pdiparams
+*.pdiparams.info
+
+# Tesseract
+tessdata/
+
+# ML model binaries
+*.pt
+*.pth
+*.bin
+*.onnx
+*.ckpt
+
+# Test images (keep structure, ignore actual images)
+test_images/*.jpg
+test_images/*.jpeg
+test_images/*.png
+test_images/*.webp
+!test_images/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
