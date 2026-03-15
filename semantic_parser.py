@@ -14,6 +14,19 @@ NUTRIENT_ALIASES = {
     "cholesterol_mg":   ["cholesterol"],
 }
 
+# ─── Codex CAC/GL 2-1985 s3.2.1 mandatory nutrients ─────────────────────────
+# These 7 must appear on every prepackaged food label.
+# Source: GUIDELINES ON NUTRITION LABELLING CAC/GL 2-1985
+MANDATORY_NUTRIENTS = [
+    "energy_kcal",
+    "protein_g",
+    "carbohydrates_g",
+    "total_fat_g",
+    "saturated_fat_g",
+    "sodium_mg",
+    "sugar_g",
+]
+
 def match_nutrient(text):
     t = text.lower()
     for canon, aliases in NUTRIENT_ALIASES.items():
@@ -30,7 +43,6 @@ def extract_number(text):
 
 
 # ─── Per-100g expected ranges ─────────────────────────────────────────────────
-# Standard FSSAI comparison unit. All extracted values normalised to this.
 
 PER_100G_RANGES = {
     "energy_kcal":     (50,    900),
@@ -46,7 +58,6 @@ PER_100G_RANGES = {
     "cholesterol_mg":  (0,    500),
 }
 
-# Per-serving ranges — used to identify and exclude serving-size column
 PER_SERVING_RANGES = {
     "energy_kcal":     (20,   600),
     "protein_g":       (1,    60),
@@ -105,19 +116,15 @@ def parse_nutrition_table(blocks):
             continue
 
         if len(values) >= 2:
-            # Pick the value that best fits per-100g range.
-            # When both fit (per-serving and per-100g overlap for some nutrients),
-            # take the LARGER one — per-100g is always >= per-serving.
             per_100g_candidates = [v for v in values if in_per_100g_range(nutrient, v)]
             if per_100g_candidates:
                 result[nutrient] = max(per_100g_candidates)
             else:
-                result[nutrient] = max(values)  # best guess
+                result[nutrient] = max(values)
         else:
             v = values[0]
             if in_per_100g_range(nutrient, v):
                 result[nutrient] = v
-            # else: single value out of range — skip rather than store wrong data
 
     return result
 
@@ -147,10 +154,42 @@ def parse_fssai_from_blocks(blocks):
     return None
 
 
-def assess_confidence(nutrition, serving_size):
-    count    = len(nutrition)
-    has_core = "protein_g" in nutrition and "energy_kcal" in nutrition
-    if count >= 6 and has_core and serving_size:
+def validate_mandatory_nutrients(nutrition: dict) -> dict:
+    """
+    Check extracted nutrition against Codex CAC/GL 2-1985 s3.2.1 mandatory list.
+
+    Returns:
+        {
+            "complete":          bool   — True if all 7 mandatory nutrients present
+            "missing_mandatory": list   — keys missing from extraction
+            "present_mandatory": list   — keys successfully extracted
+        }
+
+    A label that is incomplete does not necessarily mean the product is non-compliant —
+    OCR may have missed a field. The caller should lower confidence accordingly.
+    """
+    present = [n for n in MANDATORY_NUTRIENTS if nutrition.get(n) is not None]
+    missing = [n for n in MANDATORY_NUTRIENTS if nutrition.get(n) is None]
+    return {
+        "complete":          len(missing) == 0,
+        "missing_mandatory": missing,
+        "present_mandatory": present,
+    }
+
+
+def assess_confidence(nutrition: dict, serving_size) -> str:
+    """
+    Assess extraction confidence based on nutrient count and mandatory completeness.
+
+    high   — all 7 mandatory nutrients present + serving size
+    medium — core nutrients (protein + energy) present, or ≥3 nutrients total
+    low    — fewer than 3 nutrients or missing both core nutrients
+    """
+    validation = validate_mandatory_nutrients(nutrition)
+    count      = len(nutrition)
+    has_core   = "protein_g" in nutrition and "energy_kcal" in nutrition
+
+    if validation["complete"] and has_core and serving_size:
         return "high"
     if count >= 3 or has_core:
         return "medium"
